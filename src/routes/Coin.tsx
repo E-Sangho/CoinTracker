@@ -1,12 +1,32 @@
-import { useParams, useLocation } from "react-router-dom";
+import {
+	useParams,
+	useLocation,
+	Routes,
+	Route,
+	Link,
+	useMatch,
+} from "react-router-dom";
 import { useState, useEffect } from "react";
 import styled from "styled-components";
 import IPriceData from "./IPriceData";
 import IInfoData from "./IInfoData";
+import Price from "./Price";
+import Chart from "./Chart";
+import { fetchCoinInfo, fetchCoinPrice } from "../api";
+import { useQuery } from "react-query";
 
-const Container = styled.div``;
+const Container = styled.div`
+	padding: 0px 20px;
+	max-width: 1080px;
+	margin: 0 auto;
+`;
 
-const Header = styled.header``;
+const Header = styled.header`
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 18px;
+`;
 
 const Title = styled.div`
 	color: ${(props) => props.theme.titleColor};
@@ -47,35 +67,56 @@ const Description = styled.p`
 	margin: 20px 10px;
 `;
 
+const Tabs = styled.div`
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	margin: 24px 12px;
+	gap: 10px;
+`;
+
+const Tab = styled.span<{ isActive: boolean }>`
+	text-align: center;
+	text-transform: uppercase;
+	font-size: 24px;
+	font-weight: 400;
+	background-color: ${(props) => props.theme.dominantColor};
+	padding: 6px 0px;
+	border-radius: 12px;
+	color: ${(props) =>
+		props.isActive ? props.theme.accentColor : props.theme.textColor};
+	a {
+		display: block;
+	}
+`;
+
 interface StateInterface {
 	state: {
 		name: string;
 	};
 }
 
+interface RouteParams {
+	coinId: string;
+}
+
 function Coin() {
-	const { coinId } = useParams();
-	const [loading, setLoading] = useState(true);
+	const { coinId } = useParams<keyof RouteParams>() as RouteParams;
 	const { state } = useLocation() as StateInterface;
-	const [info, setInfo] = useState<IInfoData>();
-	const [priceInfo, setPriceInfo] = useState<IPriceData>();
-	useEffect(() => {
-		(async () => {
-			const infoData = await (
-				await fetch(`https://api.coinpaprika.com/v1/coins/${coinId}`)
-			).json();
-			const priceData = await (
-				await fetch(`https://api.coinpaprika.com/v1/tickers/${coinId}`)
-			).json();
-			setInfo(infoData);
-			setPriceInfo(priceData);
-			setLoading(false);
-		})();
-	}, []);
+	const priceMatch = useMatch("/:coinId/price");
+	const chartMatch = useMatch("/:coinId/chart");
+	const { isLoading: infoLoading, data: infoData } = useQuery<IInfoData>(
+		["info", coinId],
+		() => fetchCoinInfo(coinId)
+	);
+	const { isLoading: tickersLoading, data: tickersData } =
+		useQuery<IPriceData>(["ticker", coinId], () => fetchCoinPrice(coinId));
+	const loading = infoLoading || tickersLoading;
 	return (
 		<Container>
 			<Header>
-				<Title>{state?.name || "Loading"}</Title>
+				<Title>
+					{state ? state.name : loading ? "Loading" : infoData?.name}
+				</Title>
 			</Header>
 			{loading ? (
 				<Loading>Now Loading...</Loading>
@@ -84,54 +125,66 @@ function Coin() {
 					<Overview>
 						<OverviewItem>
 							<span>Rank</span>
-							<span>{info?.rank}</span>
+							<span>{infoData?.rank}</span>
 						</OverviewItem>
 						<OverviewItem>
 							<span>Price</span>
-							<span>${priceInfo?.quotes.USD.price}</span>
+							<span>${tickersData?.quotes.USD.price}</span>
 						</OverviewItem>
 						<OverviewItem>
 							<span>Max Price</span>
-							<span>${priceInfo?.quotes.USD.ath_price}</span>
+							<span>${tickersData?.quotes.USD.ath_price}</span>
 						</OverviewItem>
 					</Overview>
 					<Overview>
 						<OverviewItem>
 							<span>Total Supply</span>
-							<span>{priceInfo?.total_supply}</span>
+							<span>{tickersData?.total_supply}</span>
 						</OverviewItem>
 						<OverviewItem>
 							<span>Max Supply</span>
-							<span>{priceInfo?.max_supply}</span>
+							<span>{tickersData?.max_supply}</span>
 						</OverviewItem>
 					</Overview>
 					<Overview>
 						<OverviewItem>
 							<span>percent change 1h</span>
 							<span>
-								{priceInfo?.quotes.USD.percent_change_1h}%
+								{tickersData?.quotes.USD.percent_change_1h}%
 							</span>
 						</OverviewItem>
 						<OverviewItem>
 							<span>percent change 6h</span>
 							<span>
-								{priceInfo?.quotes.USD.percent_change_6h}%
+								{tickersData?.quotes.USD.percent_change_6h}%
 							</span>
 						</OverviewItem>
 						<OverviewItem>
 							<span>percent change 12h</span>
 							<span>
-								{priceInfo?.quotes.USD.percent_change_12h}%
+								{tickersData?.quotes.USD.percent_change_12h}%
 							</span>
 						</OverviewItem>
 						<OverviewItem>
 							<span>percent change 24h</span>
 							<span>
-								{priceInfo?.quotes.USD.percent_change_24h}%
+								{tickersData?.quotes.USD.percent_change_24h}%
 							</span>
 						</OverviewItem>
 					</Overview>
-					<Description>{info?.description}</Description>
+					<Description>{infoData?.description}</Description>
+					<Tabs>
+						<Tab isActive={priceMatch !== null}>
+							<Link to="price">Price</Link>
+						</Tab>
+						<Tab isActive={chartMatch !== null}>
+							<Link to="chart">Chart</Link>
+						</Tab>
+					</Tabs>
+					<Routes>
+						<Route path="price" element={<Price />} />
+						<Route path="chart" element={<Chart />} />
+					</Routes>
 				</>
 			)}
 		</Container>
