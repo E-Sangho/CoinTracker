@@ -10,15 +10,22 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import IPriceData from "./IPriceData";
 import IInfoData from "./IInfoData";
-import Price from "./Price";
 import Chart from "./Chart";
 import { fetchCoinInfo, fetchCoinPrice } from "../api";
 import { useQuery } from "react-query";
+import { Helmet } from "react-helmet";
 
 const Container = styled.div`
 	padding: 0px 20px;
 	max-width: 1080px;
 	margin: 0 auto;
+`;
+
+const Navbar = styled.div`
+	padding: 12px 12px;
+	a {
+		font-size: 18px;
+	}
 `;
 
 const Header = styled.header`
@@ -68,10 +75,9 @@ const Description = styled.p`
 `;
 
 const Tabs = styled.div`
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
+	display: flex;
+	justify-content: right;
 	margin: 24px 12px;
-	gap: 10px;
 `;
 
 const Tab = styled.span<{ isActive: boolean }>`
@@ -82,6 +88,7 @@ const Tab = styled.span<{ isActive: boolean }>`
 	background-color: ${(props) => props.theme.dominantColor};
 	padding: 6px 0px;
 	border-radius: 12px;
+	width: 120px;
 	color: ${(props) =>
 		props.isActive ? props.theme.accentColor : props.theme.textColor};
 	a {
@@ -100,9 +107,12 @@ interface RouteParams {
 }
 
 function Coin() {
+	const [chartOnOff, setChartOnOff] = useState(true);
+	const chartOnclick = () => {
+		setChartOnOff((chart) => !chart);
+	};
 	const { coinId } = useParams<keyof RouteParams>() as RouteParams;
 	const { state } = useLocation() as StateInterface;
-	const priceMatch = useMatch("/:coinId/price");
 	const chartMatch = useMatch("/:coinId/chart");
 	const { isLoading: infoLoading, data: infoData } = useQuery<IInfoData>(
 		["info", coinId],
@@ -111,12 +121,26 @@ function Coin() {
 	const { isLoading: tickersLoading, data: tickersData } =
 		useQuery<IPriceData>(["ticker", coinId], () => fetchCoinPrice(coinId));
 	const loading = infoLoading || tickersLoading;
+	useEffect(() => {
+		if (chartMatch !== null) {
+			setChartOnOff((chart) => !chart);
+		}
+	}, []);
 	return (
 		<Container>
+			<Helmet>
+				<title>
+					{state ? state.name : loading ? "Loading" : infoData?.name}
+				</title>
+			</Helmet>
+			<Navbar>
+				<Link to="/">Home</Link>
+			</Navbar>
 			<Header>
 				<Title>
 					{state ? state.name : loading ? "Loading" : infoData?.name}
 				</Title>
+				<div />
 			</Header>
 			{loading ? (
 				<Loading>Now Loading...</Loading>
@@ -174,16 +198,25 @@ function Coin() {
 					</Overview>
 					<Description>{infoData?.description}</Description>
 					<Tabs>
-						<Tab isActive={priceMatch !== null}>
-							<Link to="price">Price</Link>
-						</Tab>
-						<Tab isActive={chartMatch !== null}>
-							<Link to="chart">Chart</Link>
-						</Tab>
+						{chartOnOff ? (
+							<Tab isActive={chartMatch !== null}>
+								<Link to="chart" onClick={chartOnclick}>
+									Chart
+								</Link>
+							</Tab>
+						) : (
+							<Tab isActive={chartMatch !== null}>
+								<Link to={`${coinId}`} onClick={chartOnclick}>
+									Chart
+								</Link>
+							</Tab>
+						)}
 					</Tabs>
 					<Routes>
-						<Route path="price" element={<Price />} />
-						<Route path="chart" element={<Chart />} />
+						<Route
+							path="chart"
+							element={<Chart coinId={coinId} />}
+						/>
 					</Routes>
 				</>
 			)}
