@@ -14,6 +14,8 @@ import Chart from "./Chart";
 import { fetchCoinInfo, fetchCoinPrice } from "../api";
 import { useQuery } from "react-query";
 import { Helmet } from "react-helmet";
+import { useSetRecoilState } from "recoil";
+import { isDarkAtom } from "./atoms";
 
 const Container = styled.div`
 	padding: 0px 20px;
@@ -23,6 +25,8 @@ const Container = styled.div`
 
 const Navbar = styled.div`
 	padding: 12px 12px;
+	display: flex;
+	justify-content: space-between;
 	a {
 		font-size: 18px;
 	}
@@ -96,6 +100,16 @@ const Tab = styled.span<{ isActive: boolean }>`
 	}
 `;
 
+const Button = styled.button`
+	color: ${(props) => props.theme.textColor};
+	background-color: transparent;
+	border: none;
+	font-size: 18px;
+	&:hover {
+		color: ${(props) => props.theme.accentColor};
+	}
+`;
+
 interface StateInterface {
 	state: {
 		name: string;
@@ -126,6 +140,8 @@ function Coin() {
 			setChartOnOff((chart) => !chart);
 		}
 	}, []);
+	const setDarkAtom = useSetRecoilState(isDarkAtom);
+	const toggleDarkAtom = () => setDarkAtom((state) => !state);
 	return (
 		<Container>
 			<Helmet>
@@ -135,12 +151,12 @@ function Coin() {
 			</Helmet>
 			<Navbar>
 				<Link to="/">Home</Link>
+				<Button onClick={toggleDarkAtom}>Change Theme</Button>
 			</Navbar>
 			<Header>
 				<Title>
 					{state ? state.name : loading ? "Loading" : infoData?.name}
 				</Title>
-				<div />
 			</Header>
 			{loading ? (
 				<Loading>Now Loading...</Loading>

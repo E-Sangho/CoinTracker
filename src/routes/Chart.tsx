@@ -2,6 +2,8 @@ import { fetchCoinHistory } from "../api";
 import { useQuery } from "react-query";
 import ApexChart from "react-apexcharts";
 import styled from "styled-components";
+import { useRecoilValue } from "recoil";
+import { isDarkAtom } from "./atoms";
 
 const ChartContainer = styled.div`
 	display: flex;
@@ -52,6 +54,7 @@ function Chart({ coinId }: ICoinId) {
 	const { isLoading, data } = useQuery<IChart[]>(["chart", coinId], () =>
 		fetchCoinHistory(coinId)
 	) as tsChart;
+	const isDark = useRecoilValue(isDarkAtom);
 	return (
 		<ChartContainer>
 			{isLoading ? (
@@ -90,7 +93,7 @@ function Chart({ coinId }: ICoinId) {
 					]}
 					options={{
 						theme: {
-							mode: "dark",
+							mode: isDark ? "dark" : "light",
 						},
 						chart: {
 							toolbar: {
@@ -110,7 +113,7 @@ function Chart({ coinId }: ICoinId) {
 							text: `${coinId}`,
 							align: "left",
 							style: {
-								color: "white",
+								color: isDark ? "white" : "black",
 								fontSize: "24",
 							},
 						},
@@ -127,7 +130,7 @@ function Chart({ coinId }: ICoinId) {
 							decimalsInFloat: 2,
 							labels: {
 								style: {
-									colors: "white",
+									colors: isDark ? "white" : "black",
 								},
 							},
 						},
