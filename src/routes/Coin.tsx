@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import styled from "styled-components";
 import IPriceData from "./IPriceData";
 import IInfoData from "./IInfoData";
+import Price from "./Price";
 import Chart from "./Chart";
 import { fetchCoinInfo, fetchCoinPrice } from "../api";
 import { useQuery } from "react-query";
@@ -122,18 +123,30 @@ interface RouteParams {
 
 function Coin() {
 	const [chartOnOff, setChartOnOff] = useState(true);
+	const [priceOnOff, setPriceOnOff] = useState(true);
+
 	const chartOnclick = () => {
+		setPriceOnOff(true);
 		setChartOnOff((chart) => !chart);
 	};
+	const priceOnclick = () => {
+		setChartOnOff(true);
+		setPriceOnOff((price) => !price);
+	};
+
 	const { coinId } = useParams<keyof RouteParams>() as RouteParams;
 	const { state } = useLocation() as StateInterface;
+
+	const priceMatch = useMatch("/:coinId/price");
 	const chartMatch = useMatch("/:coinId/chart");
+
 	const { isLoading: infoLoading, data: infoData } = useQuery<IInfoData>(
 		["info", coinId],
 		() => fetchCoinInfo(coinId)
 	);
 	const { isLoading: tickersLoading, data: tickersData } =
 		useQuery<IPriceData>(["ticker", coinId], () => fetchCoinPrice(coinId));
+
 	const loading = infoLoading || tickersLoading;
 	useEffect(() => {
 		if (chartMatch !== null) {
@@ -214,6 +227,19 @@ function Coin() {
 					</Overview>
 					<Description>{infoData?.description}</Description>
 					<Tabs>
+						{priceOnOff ? (
+							<Tab isActive={priceMatch !== null}>
+								<Link to="price" onClick={priceOnclick}>
+									Price
+								</Link>
+							</Tab>
+						) : (
+							<Tab isActive={priceMatch !== null}>
+								<Link to={`/${coinId}`} onClick={priceOnclick}>
+									Price
+								</Link>
+							</Tab>
+						)}
 						{chartOnOff ? (
 							<Tab isActive={chartMatch !== null}>
 								<Link to="chart" onClick={chartOnclick}>
@@ -222,13 +248,17 @@ function Coin() {
 							</Tab>
 						) : (
 							<Tab isActive={chartMatch !== null}>
-								<Link to={`${coinId}`} onClick={chartOnclick}>
+								<Link to={`/${coinId}`} onClick={chartOnclick}>
 									Chart
 								</Link>
 							</Tab>
 						)}
 					</Tabs>
 					<Routes>
+						<Route
+							path="price"
+							element={<Price coinId={coinId} />}
+						/>
 						<Route
 							path="chart"
 							element={<Chart coinId={coinId} />}
